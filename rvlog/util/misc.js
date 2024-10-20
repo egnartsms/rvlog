@@ -19,3 +19,16 @@ export function addAll (container, items) {
     container.add(item)
   }
 }
+
+
+/**
+ * Like ordinary `set.add(item)` but return whether we added the item.
+ */
+export function add (set, item) {
+  if (set.has(item)) {
+    return false
+  } else {
+    set.add(item)
+    return true
+  }
+}

@@ -1,4 +1,4 @@
-import * as util from 'rvlog/util'
+import { methodFor } from './generic.js'
 
 export { Multimap }
 

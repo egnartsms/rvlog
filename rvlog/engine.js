@@ -1,18 +1,18 @@
 import * as util from './util'
 
-export { propagateToFixpoint, invalidate, isInvalidated, createPrioQueue }
+export { propagateToFixpoint, scheduleForRevalidation, isScheduledForRevalidation, setupPrioQueue }
 
-const invalidated = new Set()
+const toRevalidate = new Set()
 let prioQueue = null
 
-function createPrioQueue () {
+function setupPrioQueue () {
   dbg: util.check(prioQueue === null)
 
   prioQueue = []
 }
 
-function invalidate (item) {
-  if (invalidated.has(item)) {
+function scheduleForRevalidation (item) {
+  if (toRevalidate.has(item)) {
     return
   }
 
@@ -20,19 +20,19 @@ function invalidate (item) {
     prioQueue.push(item)
   }
 
-  invalidated.add(item)
+  toRevalidate.add(item)
 }
 
-function isInvalidated (item) {
-  return invalidated.has(item)
+function isScheduledForRevalidation (item) {
+  return toRevalidate.has(item)
 }
 
 function propagateToFixpoint () {
-  while (invalidated.size > 0) {
+  while (toRevalidate.size > 0) {
     if (prioQueue !== null) {
       for (const item of prioQueue) {
         item.revalidate()
-        invalidated.delete(item)
+        toRevalidate.delete(item)
       }
 
       prioQueue = null
@@ -40,8 +40,8 @@ function propagateToFixpoint () {
       continue
     }
 
-    const [item] = invalidated
+    const [item] = toRevalidate
     item.revalidate()
-    invalidated.delete(item)
+    toRevalidate.delete(item)
   }
 }

@@ -87,20 +87,22 @@ supplies back A increasing its supply count (through the same or another rule) t
 Generally, these vicious circles may be more than 2 links long. How do we deal with this
 sort of problem?
 
-With node instantiations. (NO)
+For each agent, there's a set of nodes that it generates through primary support
+(transitive closure). Those that it immediately generates, then for each of them all the
+agents that depend on it, then what they immediately generate, etc. Ultimately, the point
+is that the initial agent is necessary (among other agents) to generate all of these
+nodes: without it, they wouldn't have existed.
 
-Iteration is a plane consumer. It cares about being notified of the plane changes, i.e.
-which nodes were added and which were deleted since the previous time it was notified.
-
-Node supply and consume:
-
-[S1] - C1 - S2 - C2 - S3 - C3 - ...
-
-The point is that a node is first supplied by someone (1 time or many), then we have some
-consumptions, including plane consumption. And these consumptions depend on preceding
-supplies, not the following ones.
-
-The problem is that this is node-based (individual) not plane-based (multiple). 
+The idea is to check whether the accessed node belong to the set of procreated nodes of an
+agent. If yes, then we consider the node as non-existing? But another agent may be
+supporting this node as a secondary supporter which can become a primary one.
 
 
-Update: no node instantiations. This is now taken care of with main supporters.
+No, this is an inferior approach. This is a subset of the normal GC algorithm.
+
+
+Why I don't like the GC? Because we go upwards not linearly but in N directions
+simultaneously. So this is kind of a multiple-descending tree, where Agents in fact have
+multiple simultaneous parents (nodes), and we have to ascend from an agent into all of
+its dependencies at once, by either BFS or DFS. We ultimately look for whether a
+particular agent has a particular node as its dependency.

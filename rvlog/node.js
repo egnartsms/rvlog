@@ -1,8 +1,8 @@
-import * as util from 'rvlog/util'
-import { Multimap, Queue } from 'rvlog/util'
-import { proxyFor, symTarget } from 'rvlog/proxy.js'
-import { Plane } from 'rvlog/plane.js'
-import { invalidate } from 'rvlog/engine.js'
+import * as util from './util'
+import { Multimap, Queue } from './util'
+import { proxyFor, symTarget } from './proxy.js'
+import { Plane } from './plane.js'
+import { scheduleForRevalidation } from './engine.js'
 
 export { Node }
 
@@ -35,20 +35,17 @@ function Node (parentPlane, value) {
   )
 }
 
-const shadowSupporters = new Multimap() // all except the `node.supporter`
-const nodeWatchers = new Map()
-
 Node.prototype.proxyTraps = {
   get (node, key, receiver) {
     if (key === symTarget) {
       return node
     }
 
-    return nodeGet(node, key)
+    return proxyFor(planeAt(node, key))
   }
 }
 
-function nodeGet (node, key) {
+function planeAt (node, key) {
   if (node.planes === null) {
     node.planes = { __proto__: null }
   }
@@ -60,8 +57,11 @@ function nodeGet (node, key) {
     // garbageCandidates.add(plane)
   }
 
-  return proxyFor(plane)
+  return plane
 }
+
+const shadowSupporters = new Multimap() // all except the `node.supporter`
+const nodeWatchers = new Map()
 
 util.propertyFor(Node, function isSupported () {
   return this.supporter !== null || this.numSupportedPlanes > 0
@@ -109,7 +109,7 @@ util.methodFor(Node, function unwatchBy (watcher) {
 
 function existenceChanged (node) {
   if (nodeWatchers.has(node)) {
-    invalidate(node)
+    scheduleForRevalidation(node)
   }
 }
 
@@ -208,6 +208,9 @@ function canAgentSupportNode (primAgent, orphaned) {
       return false // 'orphaned' transitively supports 'primAgent'
     }
 
+    // TODO: you left off here.
+    if (agent.watchedAttrs)
+
     for (const node of agent.watchedNodes) {
       if (node.supporter !== null && !seen.has(node.supporter)) {
         seen.add(node.supporter)
@@ -221,7 +224,7 @@ function canAgentSupportNode (primAgent, orphaned) {
 
 /**
  * By node revalidation we imply notifying its watchers about its supported status. We
- * track which watchers are in which state.
+ * track which watchers see the node as existing (supported) and which as non-existing.
  */
 util.methodFor(Node, function revalidate () {
   if (!nodeWatchers.has(this)) {

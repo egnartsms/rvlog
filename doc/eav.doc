@@ -1,0 +1,300 @@
+# In JavaScript
+
+```js
+import * as rv from 'rvlog'
+
+
+const Person = rv.Schema('Person')
+
+
+rv.rule(() => {
+  rv.addMulti(Person.sex, [
+    ['Serhii', 'male'],
+    ['Polya', 'female'],
+
+    ['Kostya', 'male'],
+    ['Olya', 'female'],
+    ['Dima', 'male'],
+    ['Natasha K', 'female'],
+    ['Nastya', 'female'],
+    ['Larisa Petrovna', 'female'],
+    ['Sergey Nikolayevich', 'male'],
+    ['Sasha', 'male'],
+    ['Natalya', 'female'],
+    ['Dasha', 'female'],
+    ['Alesha', 'male'],
+
+    ['Katya', 'female'],
+    ['Yura', 'male'],
+    ['Nadya', 'female'],
+    ['Baba Lyuda', 'female'],
+    ['Deda Misha', 'male'],
+    ['Baba Galya', 'female'],
+    ['Aunt Lena', 'female'],
+    ['Alex Onufrienko', 'male'],
+    ['Yulya', 'female'],
+    ['Lesha', 'male'],
+    ['Mark', 'male'],
+    ['Akim', 'male'],
+    ['Andryusha', 'male'],
+    ['Nastya A', 'female'],
+    ['Naskidovna', 'female'],
+    ['Stepa', 'male']
+    ['Taras', 'male']
+
+    ['Tanya', 'female'],
+    ['Larisa', 'female'],
+    ['Nikolai Sergeevich', 'male'],
+    ['Shura', 'female'],
+    ['Yura', 'male'],
+    ['Vova Y', 'male'],
+    ['Lyuda', 'female'],
+    ['Galina Sereda', 'female'],
+    ['Nikolay Kuzmich', 'male'],
+
+    ['Kolya', 'male'],
+    ['David', 'male'],
+    ['Karina', 'female'],
+    ['Inna', 'female'],
+    ['Anya I', 'female'],
+    ['Diana', 'female'],
+
+    ['Vova', 'male'],
+    ['Anna', 'female'],
+    ['Semen', 'male'],
+
+    ['Aunt Lyuda', 'female'],
+    ['Vasya', 'male'],
+    ['Oksana', 'female'],
+    ['f. Georgii', 'male'],
+    ['Dasha', 'female'],
+    ['Serezha', 'male'],
+    ['Ivanka D', 'female'],
+    ['Katya O', 'female'],
+    ['Sasha', 'female'],
+    ['Anya O', 'female'],
+    ['Khrystynka', 'female'],
+    ['Anya', 'female'],
+    ['Yegor', 'male'],
+    ['Igor', 'male'],
+
+    ['Ira', 'female'],
+    ['Zhenya', 'female'],
+    ['Vika', 'female'],
+    ['Viktor Anatolyevich', 'male'],
+    ['Irina Nikolayevna', 'female'],
+  ])
+})
+
+rv.rule(() => {
+  rv.addMulti(Person.child, [
+    ['Serhii', 'Polya'],
+    ['Kostya', 'Dima'],
+    ['Kostya', 'Nastya'],
+    ['Olya', 'Dima'],
+    ['Natasha K', 'Nastya'],
+    ['Larisa Petrovna', 'Olya'],
+    ['Larisa Petrovna', 'Sasha'],
+    ['Sergey Nikolayevich', 'Olya'],
+    ['Sergey Nikolayevich', 'Sasha'],
+    ['Sasha', 'Dasha'],
+    ['Sasha', 'Alesha'],
+    ['Natalya', 'Dasha'],
+    ['Natalya', 'Alesha'],
+    ['Katya', 'Polya'],
+    ['Yura', 'Kostya'],
+    ['Yura', 'Katya'],
+    ['Nadya', 'Kostya'],
+    ['Nadya', 'Katya'],
+    ['Baba Lyuda', 'Yura'],
+    ['Deda Misha', 'Yura'],
+    ['Baba Galya', 'Nadya'],
+    ['Baba Galya', 'Aunt Lena'],
+    ['Aunt Lena', 'Yulya'],
+    ['Aunt Lena', 'Andryusha'],
+    ['Alex Onufrienko', 'Yulya'],
+    ['Alex Onufrienko', 'Andryusha'],
+    ['Yulya', 'Mark'],
+    ['Yulya', 'Akim'],
+    ['Lesha', 'Mark'],
+    ['Lesha', 'Akim'],
+    ['Andryusha', 'Taras'],
+    ['Andryusha', 'Stepa'],
+    ['Nastya A', 'Taras'],
+    ['Nastya A', 'Stepa'],
+    ['Naskidovna', 'Nastya A'],
+
+    ['Tanya', 'Serhii'],
+    ['Tanya', 'Ira'],
+    ['Larisa', 'Kolya'],
+    ['Larisa', 'Lyuda'],
+    ['Nikolai Sergeevich', 'Tanya'],
+    ['Nikolai Sergeevich', 'Larisa'],
+    ['Shura', 'Tanya'],
+    ['Shura', 'Larisa'],
+    ['Yura', 'Kolya'],
+    ['Yura', 'Lyuda'],
+    ['Galina Sereda', 'Yura'],
+    ['Galina Sereda', 'Vova Y'],
+    ['Nikolay Kuzmich', 'Yura'],
+    ['Nikolay Kuzmich', 'Vova Y'],
+
+    ['Kolya', 'David'],
+    ['Kolya', 'Diana'],
+    ['Karina', 'David'],
+    ['Inna', 'Anya I'],
+    ['Inna', 'Diana'],
+
+    ['Vova', 'Serhii'],
+    ['Vova', 'Ira'],
+    ['Anna', 'Aunt Lyuda'],
+    ['Anna', 'Vova'],
+    ['Semen', 'Aunt Lyuda'],
+    ['Semen', 'Vova'],
+
+    ['Aunt Lyuda', 'Oksana'],
+    ['Aunt Lyuda', 'Anya'],
+    ['Vasya', 'Oksana'],
+    ['Vasya', 'Anya'],
+    ['Oksana', 'Dasha'],
+    ['Oksana', 'Katya O'],
+    ['Oksana', 'Sasha'],
+    ['Oksana', 'Anya O'],
+    ['Oksana', 'Khrystynka'],
+    ['f. Georgii', 'Dasha'],
+    ['f. Georgii', 'Katya O'],
+    ['f. Georgii', 'Sasha'],
+    ['f. Georgii', 'Anya O'],
+    ['f. Georgii', 'Khrystynka'],
+    ['Dasha', 'Ivanka D'],
+    ['Serezha', 'Ivanka D'],
+    ['Anya', 'Yegor'],
+    ['Igor', 'Yegor'],
+
+    ['Ira', 'Vika'],
+    ['Zhenya', 'Vika'],
+    ['Viktor Anatolyevich', 'Zhenya'],
+    ['Irina Nikolayevna', 'Zhenya']
+  ])
+})
+
+rv.infer(Person(v`person`).father(Person(v`dad`)), () => {
+  rv.find(v`dad`.child(v`person`))
+  rv.find(v`dad`.sex('male'))
+})
+
+rv.infer(Person.mother(v`person`, v`mom`), () => {
+  rv.find(Person.child(v`mom`, v`person`))
+  rv.find(Person.sex(v`mom`, 'female'))
+})
+
+
+rv.infer(Person(v`man`).wife(v`woman`), () => {
+  rv.exists(
+    Person(v`child`).father(v`man`),
+    Person(v`child`).mother(v`woman`)
+  )
+})
+
+
+rv.infer(Person(v`A`).spouse(Person(v`B`)), () => {
+  // ?? distinct A, B
+  rv.exists(
+    v`A`.child(v`child`),
+    v`B`.child(v`child`),
+    rv.distinct(v`A`, v`B`)
+  )
+})
+
+rv.infer(Person(v`person`).numChildren(v`num`), rv.all(
+  rv.unify(v`num`, rv.count(v`person`.child(v`_`)))
+))
+
+rv.infer(v => Person(v`person`).hadManySpouses(v`result`), (unify) => {
+  unify(v`result`, rv.multiple(v`person`.spouse(v`_`)))
+})
+```
+
+```js
+rv.infer(ShortestPath(v`sp`), {
+  source: v`source`,
+  destination: v`dest`,
+  transport: v`transport`,
+  time: v`minTime`
+}, (v) => {
+  rv.match(v`sp`, rv.freshEntity)
+  rv.match(Path(v`path`), {
+    source: v`source`,
+    destination: v`destination`,
+    transport: v`transport`,
+    time: v`time`
+  })
+})
+
+
+rv.Schema('Student', {
+  university: rv.attr({index: true, subindex: 'faculty'}),
+  faculty: rv.attr({index: true})
+})
+
+```
+
+event.ticket == ticket ::
+    order.event == event
+    orderline.order == order
+    ticket.orderline == orderline
+
+
+```py
+sale_fulfillment_settings.sale == sale
+sale.point_of_sale == pos
+sale.event == event
+order.sale == sale
+event.delayed_fulfillment_settings == dfs
+
+```
+
+
+```js
+X attr A
+A attr X
+
+X attr *
+* attr X
+```
+
+Versionable multisets of values. Each multiset is refined/filtered by N conditions of
+the form: "attr A" or "A attr", where instead of A we may have just "\*" (any value).
+
+Voucher.type == <discount>
+Voucher.event == <event>
+
+Student.special == <const>
+Student.university == <univ>
+
+
+lettres, phys, med
+iowa, princeton, harvard, seattle, berkley, yale, mit, california
+
+
+Pyramid data structure for each join. For all the values that we were interested in. When
+a new triple is added, we see whether its key or value is requested by anyone. It may be
+requested in several pyramids, at various levels.
+
+In a pyramid, each path from the root to a leaf (i.e. each leaf) corresponds to a
+continuation, and to a bag of values. This is what we're joining. And we're tracking this
+bag, delta to this bag. So a pyramid is a set of these bags, each of which is being
+tracked/versioned separately.
+
+
+A slice: key-slice or val-slice. Whether we fix the "key" part of a binary predicate or
+the "value" part. Fix at some point (specific value). What we end up with is a set(a bag)
+of triples, all unique because all the triples are distinct in our system. These set of
+triples correspond to a multiset of values/keys. So a slice is a set of triples or
+a multiset of general values.
+
+
+lettres --> princeton, yale, california
+phys    --> harvard, berkley, yale, mit
+med     --> iowa, harvard, yale, california
+

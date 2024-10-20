@@ -83,7 +83,8 @@ rv.procedure(() => {
 
 2. Interaction with SQL
 
-SQL predicates are specially recognized in bodies, and are executed by translation into SQL. Consecutive goals that target RDBMS are grouped together.
+SQL predicates are specially recognized in bodies, and are executed by translation into
+SQL. Consecutive goals that target RDBMS are grouped together.
 
 ```js
 rv.deduce(something, [
@@ -95,7 +96,32 @@ rv.deduce(something, [
 ```
 
 ```py
-@rv.deduce(something)
+Sub = rv.var()
+
+
+@rv.infer(Order.subtotal(sub).is_big(is_big))
+def _(order, sub):
+    orderline = rv.vars(1)
+
+    yield order.orderline(orderline)
+    yield orderline.product(product)
+    yield product.price(price)
+
+    
+    yield sub == rv.aggregate(rv.sum, orderline.product.price * orderline.quantity)
+
+    yield rv.any(
+      rv.all(
+        sub < 100.0,
+        is_big == False
+      ),
+      rv.all(
+        sub > 100.0,
+        is_big == True
+      )
+    )
+
+
 def order_level_effective_fee(event_id):
     fo_fee = rv.Var()
 
@@ -112,3 +138,35 @@ Caching (ORM-like) approach to SQL:
   then combine IDs with `table.pk IN (id1, id2, id3, ...)`. Also possible to
   refer to the DB directly (i.e. SQL query as part of another predicate
   inference).
+
+
+## New plan: no attr access and black-box reactive procedures
+
+
+```js
+rv.infer(Order.total($.total), ($, order) => {
+  $.total = rv.aggregate(rv.Sum, rv.and(
+    order.orderline($.orderline),
+    $.orderline.product($.product),
+    $.orderline.quantity($.N),
+    $.product.price($.price),
+    rv.gen($.total, (v) => v.price * v.N)
+
+  ))
+  let orderline = new Var()
+})
+
+
+rv.infer(Event.ticket($.ticket), ($, event) => [
+  event.order($.order),
+  $.order.orderline($.orderline),
+  $.orderline.ticket($.ticket)
+])
+
+
+rv.infer(Ticket.event($.event), ($, ticket) => [
+  ticket.orderline($.orderline),
+  $.orderline.order($.order),
+  $.order.event($.event)
+])
+```

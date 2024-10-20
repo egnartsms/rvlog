@@ -1,6 +1,7 @@
-import * as util from 'rvlog/util'
-import { proxyFor, symTarget } from 'rvlog/proxy.js'
-import { Node } from 'rvlog/node.js'
+import * as util from './util'
+import { proxyFor, symTarget } from './proxy.js'
+import { Node } from './node.js'
+import { activeAgent } from './agent.js'
 
 export { Plane }
 
@@ -25,8 +26,6 @@ function Plane (parentNode, name) {
   )
 }
 
-const attrWatchers = new Map()
-
 Plane.prototype.proxyTraps = {
   // Subplane getter
   get (plane, key, receiver) {
@@ -38,22 +37,34 @@ Plane.prototype.proxyTraps = {
   },
 
   apply (plane, thisArg, args) {
-    return planeApply(plane, args)
+    if (args.length === 0) {
+      activeAgent.useAttr(plane)
+
+      if (plane.node !== null) {
+        return plane.node.value
+      }
+
+      throw new AttributeUndefined()
+    }
+
+    if (args.length > 1) {
+      util.raise('Plane call misuse (many arguments)')
+    }
+
+    return proxyFor(nodeAt(plane, args[0]))
   }
 }
 
-function planeApply (plane, args) {
-  if (args.length === 0) {
-    util.raise('Plane call misuse (no arguments)')
-  } else if (args.length > 1) {
-    util.raise('Plane call misuse (many arguments)')
-  }
+class AttributeUndefined extends Error {}
 
-  const [value] = args
+util.propertyFor(Plane, function valueAsAttr () {
+  return this.node !== null ? this.node.value : undefined
+})
 
+function nodeAt (plane, value) {
   if (plane.node !== null) {
     if (plane.node.value === value) {
-      return proxyFor(plane.node)
+      return plane.node
     }
 
     // Switch to multiple nodes
@@ -67,12 +78,12 @@ function planeApply (plane, args) {
     ])
     plane.node = null
 
-    return proxyFor(node)
+    return node
   }
 
   if (plane.nodes === null) {
     plane.node = Node(plane, value)
-    return proxyFor(plane.node)
+    return plane.node
   }
 
   let node = plane.nodes.get(value)
@@ -83,5 +94,48 @@ function planeApply (plane, args) {
     // garbageCandidates.add(node)
   }
 
-  return proxyFor(node)
+  return node
 }
+
+const attrWatchers = new Map()
+
+util.methodFor(Plane, function watchAsAttrBy (watcher) {
+  let rec = attrWatchers.get(this)
+
+  if (rec === undefined) {
+    rec = {
+      value: this.valueAsAttr,
+      watchers: new Set(),
+      keep: false  // if true, don't delete from the map
+    }
+    attrWatchers.set(this, rec)
+  }
+
+  if (rec.value === this.valueAsAttr) {
+    return util.add(rec.watchers, watcher)
+  }
+
+  // Need to invalidate all the previous watchers
+  const oldValue = rec.value
+
+  rec.value = this.valueAsAttr
+  rec.keep = true
+
+  for (const watcher of Array.from(rec.watchers)) {
+    watcher.onAttrChanged(this, rec.value, oldValue)
+  }
+
+  rec.keep = false
+
+  return util.add(rec.watchers, watcher)
+}
+
+util.methodFor(Plane, function unwatchAsAttrBy (watcher) {
+  const rec = attrWatchers.get(this)
+
+  rec.watchers.delete(watcher)
+
+  if (!rec.keep && rec.watchers.size === 0) {
+    attrWatchers.delete(this)
+  }
+})

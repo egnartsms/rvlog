@@ -1,5 +1,5 @@
 import * as util from './util'
-import { invalidate, isInvalidated, createPrioQueue } from './engine.js'
+import { scheduleForRevalidation, isScheduledForRevalidation, setupPrioQueue } from './engine.js'
 
 export { activeAgent, Agent }
 
@@ -20,6 +20,7 @@ function Agent (proc) {
   Object.assign(this, {
     proc,
     watchedNodes: [],
+    watchedAttrs: [],
     supportedNodes: [],
     exc: null
   })
@@ -37,13 +38,24 @@ util.methodFor(Agent, function useNode (node) {
   }
 })
 
+util.methodFor(Agent, function useAttr (plane) {
+  if (plane.watchAsAttrBy(this)) {
+    this.watchedAttrs.push(plane)
+  }
+})
+
+util.methoFor(Agent, function* depNodes () {
+  yield* this.watchedNodes
+  // TODO: yield nodes for defined attributes
+})
+
 let activeAgent = null
 
 util.methodFor(Agent, function revalidate () {
   dbg: util.check(activeAgent === null, 'Agent revalidation may not overlap')
 
   activeAgent = this
-  createPrioQueue()
+  setupPrioQueue()
 
   try {
     this.proc.call(null)
@@ -56,15 +68,20 @@ util.methodFor(Agent, function revalidate () {
   activeAgent = null
 })
 
-util.methodFor(Agent, function reset () {
-  dbg: util.check(!isInvalidated(this))
+util.methodFor(Agent, function invalidate () {
+  dbg: util.check(!isScheduledForRevalidation(this))
 
   for (const node of this.watchedNodes) {
     node.unwatchBy(this)
   }
   this.watchedNodes.length = 0
 
-  invalidate(this)
+  for (const plane of this.watchedAttrs) {
+    plane.unwatchAsAttrBy(this)
+  }
+  this.watchedAttrs.length = 0
+
+  scheduleForRevalidation(this)
 
   for (const node of this.supportedNodes) {
     node.unsupportBy(this)
@@ -73,5 +90,5 @@ util.methodFor(Agent, function reset () {
 })
 
 util.methodFor(Agent, function onNodeFlipped (node, exists) {
-  this.reset()
+  this.invalidate()
 })

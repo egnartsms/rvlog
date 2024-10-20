@@ -1,7 +1,7 @@
 import { symTarget, proxyFor } from './proxy.js'
 import { Node } from './node.js'
 import { activeAgent, Agent } from './agent.js'
-import { invalidate, isInvalidated, propagateToFixpoint } from './engine.js'
+import { scheduleForRevalidation, propagateToFixpoint } from './engine.js'
 
 export { dataNode, add, exists, propagateToFixpoint, procedure, agentEventHandler }
 
@@ -22,7 +22,7 @@ function exists (nodeProxy) {
 }
 
 function procedure (proc) {
-  invalidate(new Agent(proc))
+  scheduleForRevalidation(new Agent(proc))
 }
 
 function agentEventHandler (proc) {
