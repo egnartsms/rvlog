@@ -19,7 +19,7 @@ methodFor(MultiMap, function has (key, val) {
 
 /**
  * Precondition: this.alone.has(key) should be true
- */
+ */isScheduledForRevalidation
 function toMulti (mmap, key) {
   const bag = new Set()
   bag.add(this.alone.get(key))

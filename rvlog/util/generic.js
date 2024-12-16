@@ -1,3 +1,5 @@
+import { propagateToFixpoint } from "../engine"
+
 export function methodFor (klass, method) {
   if (Object.hasOwn(klass.prototype, method.name)) {
     throw new Error(`Duplicate method '${method.name}' for '${klass.name}'`)
@@ -16,4 +18,9 @@ export function propertyFor (klass, fnGetter) {
     enumerable: true,
     get: fnGetter
   })
+}
+
+
+function duckMe () {
+  propagateToFixpoint
 }

@@ -1,0 +1,126 @@
+So for each predicate, we have:
+
+  - Rules. Each rule consists of a head and a body. If the body is missing, this is a fact
+    assertion, or just fact. If there's a body, this is an inference rule.
+
+  - Projections. All specializations of a predicate that anybody needs anywhere. There
+    should only be 1 projection identity for equal projections.
+
+
+Speaking of rules:
+
+  - Each inference rule can have multiple specializations. A specialization is a mapping
+    between some of the free variables in the rule head to some concrete values. Not all
+    free vars should be mapped (bound).
+
+  - A fact or more generally, a rule with a head with no vars is itself the only possible
+    specialization.
+
+  - A single rule specialization may contribute to one or many projections. But at least 1,
+    because otherwise there would be no point in having this specialization at all.
+
+  - Rules have dynamic indices. The indices are created on-demand and are maintained with
+    some caching heuristics algorithm. Indices are needed when a new projection gets
+    created, in order to find what rules match with this projection. They're especially
+    useful for mostly-factual predicates, where all or most of rules are just plain
+    facts. The indices in this case are more like normal RDBMS indices on a table.
+
+  - Dynamic indices imply dynamic column cardinalities and indexed column re-ordering.
+
+
+1 specialization can contribute to multiple projections:
+
+```
+% Rule:
+usable(john, Operation) :- ...
+
+% Projections:
+usable(john, 'addition').
+usable(Person, 'addition').
+```
+
+rule x projection -> single specialization
+
+Projection can be either refining or generalizing, for each dimension. Refinement always
+creates a distinct specialization, but generalizing can lead to a single specialization
+fitting multiple projections.
+
+
+```
+% Rules:
+usable(User, Operation, Rights) :- ...
+usable(john, Operation, Rights) :- ...
+
+% Projections:
+usable(john, 'addition', Rights).
+```
+
+In this case, the projection is refining both rules.
+
+So, rules <-> projections is N-to-N.
+
+
+Data structures
+---
+
+Predicate:
+  * rules: list
+  * rules: match indices of rule heads
+  * projections: n-map
+  * projections: match indices
+
+Rule:
+  * n-map of specializations
+
+Specialization:
+  * root node
+  * consuming projections
+  * n-multi-map of results
+
+Projection:
+  ? n-multi-map of results
+  * contributing specializations
+  * consumers/observers (from bodies of other predicates)
+  * top version
+
+We don't really want to copy tuples from specializations to projections. To avoid it, we
+should be able to determine what changed for a projection without copying all of the
+projection's contents. And also to enumerate it. Can we do that?
+
+For each projection, we know its contributing specializations. We should be using
+specialization's keys. Can't we have collisions? Yes we can:
+
+
+```
+% Rules:
+performs(john, Resource, Rights).
+performs(bill, Resource, Rights).
+
+% Projections:
+performs(User, Resource, 'create').
+```
+
+But still we shouldn't necessarily copy the data. We should just be smarter when we
+determine the key of a datum (tuple). The keys should be from the projection's
+perspective, not the specialization's perspective. So in this example, we should add
+either <john> or <bill> to the composite datum key.
+
+When we got a new solution to a specialization, we update all the consuming projections,
+taking into account this _promoting_ key case. So we just add to the "top version" delta,
+the key and the value. Same for removal.
+
+Is it possible?
+
+Consider some clause (rule) head. Some of the arguments are free, some are bound. An
+applicable projection may:
+
+  - use some vars
+  - bind some vars
+  - match some bound vars
+  - promote some bound vars
+
+If 2 projections differ only in whether they promote or match bound vars, we have the same
+specialization, right? It's just that one projection consumes the data produced by this
+specialization directly, and the other one also adds some new vars always bound to the
+same value that the specialization binds them to. So may be it's better to copy, after
+all?

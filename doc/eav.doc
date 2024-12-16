@@ -79,7 +79,7 @@ rv.rule(() => {
     ['Igor', 'male'],
 
     ['Ira', 'female'],
-    ['Zhenya', 'female'],
+    ['Zhenya', 'male'],
     ['Vika', 'female'],
     ['Viktor Anatolyevich', 'male'],
     ['Irina Nikolayevna', 'female'],
@@ -197,6 +197,13 @@ rv.infer(Person(v`man`).wife(v`woman`), () => {
 })
 
 
+rv.infer(Person.aunt(v.Person, v.Aunt), () => {
+  rv.find(Person.parent(v.Person, v.Parent))
+  rv.find(Person.sibling(v.Parent, v.Aunt))
+  rv.find(Person.sex(v.Aunt, 'female'))
+})
+
+
 rv.infer(Person(v`A`).spouse(Person(v`B`)), () => {
   // ?? distinct A, B
   rv.exists(
@@ -216,28 +223,90 @@ rv.infer(v => Person(v`person`).hadManySpouses(v`result`), (unify) => {
 ```
 
 ```js
-rv.infer(ShortestPath(v`sp`), {
-  source: v`source`,
-  destination: v`dest`,
-  transport: v`transport`,
-  time: v`minTime`
-}, (v) => {
-  rv.match(v`sp`, rv.freshEntity)
-  rv.match(Path(v`path`), {
+rv.infer(
+  ShortestPath(ra.Fresh, {
     source: v`source`,
-    destination: v`destination`,
+    destination: v`dest`,
     transport: v`transport`,
-    time: v`time`
-  })
-})
-
-
-rv.Schema('Student', {
-  university: rv.attr({index: true, subindex: 'faculty'}),
-  faculty: rv.attr({index: true})
-})
-
+    time: v`minTime`
+  }),
+  () => [
+    ra.unify(v`minTime`, ra.aggregate(
+      ra.minimum(v`time`),
+      ra.unify(Path(v`_`), {
+        source: v`source`,
+        destination: v`dest`,
+        transport: v`transport`,
+        time: v`time`
+      })
+    ))
+  ]
+)
 ```
+
+
+```py
+@rv.infer(Person(v.person).num_children(v.num))
+def _(person, num):
+    yield num == rv.count(person.child(v._))
+
+
+
+def families_of(man):
+    @ires.for_each(children_of(man))
+    def _(child):
+        wife = child.mother
+        family = by_wife.get(wife)
+        family.children += child
+
+    return by_wife.values()
+
+    z = f(x, y)
+
+
+
+
+
+@rv.infer(Family(v.family, husband=v.hus, wife=v.wife, child=v.child))
+def _(hus, wife, child):
+    """TODO: this is dubious. Should a new Family entity be created for each child or not?"""
+    yield rv.aggregate(
+        rv.all(
+            Person(hus).child(v.child),
+            Person(wife).child(v.child),
+            Person(hus).sex("male"),
+            Person(wife).sex("female"),
+        ),
+        by=(hus, wife)
+    )
+    # TODO: what to do next? How to fix 'hus' and 'wife' and enumerate all 'child' ?
+
+
+Ticket.event == Event ::
+    Ticket.orderline == Orderline
+    Orderline.order == Order
+    Order.event == Event
+
+
+@rv.infer(v.person.num_families(v.num))
+def _(person: Person, num: int):
+  yield rv.xor(
+    rv.cond(person.sex("male")).then(num == rv.count(Family(v._, husband=person))),
+    rv.cond(person.sex("female")).then(num == rv.count(Family(v._, wife=person)))
+  )
+
+
+
+@rv.infer(Person.spouse(v.pA, v.pB))
+def _():
+    yield rv.exists(
+        Person.parent(v.child, v.pA),
+        Person.parent(v.child, v.pB),
+        rv.distinct(v.pA, v.pB)
+    )
+```
+
+
 
 event.ticket == ticket ::
     order.event == event

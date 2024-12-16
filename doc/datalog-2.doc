@@ -1,0 +1,207 @@
+Per-predicate data structures
+===
+
+Don't really want to keep facts separate from deductive rules. I'd like to keep
+all the clauses of a predicate in 1 data structure.
+
+```
+person: 'Joe' likes: 'Mario'.
+person: 'Josh' likes: 'Synthia'.
+
+person: _ likes: 'Fabio'.  # everybody likes Fabio
+person: 'Susie' likes: _.  # Susie likes everybody
+
+person: 'Travor' likes: X <-
+  person: X sex: 'female'
+  person: X likes activity: 'cycling'.
+
+person: A likes: B <-
+  # person: A
+  # person: B
+  A = B.
+
+```
+
+This is kind of the "write" for a predicate. The "read" for a predicate is its
+projections -- that is, what other parties want to know about this predicate,
+all the possible combinations/instantiations.
+
+Now, the clauses on one hand, and the projections on the other hand, are matched
+one against the other. For each projection, we determine which clauses populate
+it. Each projection may be populated by multiple clauses.
+
+When a new projection is created, we go through all the clauses and see which of
+them add up to this projection. Analogously, when a new clause is added, we go
+through all the existing projections and see whether this clause augments any
+of them. For inference rules, we need to execute it for each projection and
+obtain results.
+
+
+Projection registry
+---
+
+For projections, we speak as in: some of the arguments may be bound. And what
+values they're bound to.
+
+How to organize the projection registry? One way is a pyramid of increasing
+cardinality. At the level 1 is the argument with the least cardinality, then
+bigger, etc. This is a data structure that minimizes the number of "nodes" to
+store all the possible bound values of arguments. But how to use it? What are
+we going to do with projections?
+
+First, a projection should be identified uniquely (by reference) by the values
+of its bound arguments. So we should be able to look up a projection, and
+create one if not yet exists. Interning of projections.
+
+
+```
+person: X works for company: Y <-
+  company: Y specializes in: 'metallurgy'
+  ...
+
+person: X works for company: Y <-
+  company: Y specializes in: 'pharmaceuticals'
+  ...
+
+```
+
+
+1 ? 1 ?
+? 1 1 1
+1 1 ? 1
+1 1 1 1
+? 1 1 1
+1 1 1 ?
+
+
+Another question is whether we should also keep track of values of tuples. We
+might want to do this to avoid delete/add of tuples that have all the same
+members. This is especially true (and simple to implement) with scalar
+projections, but not so easy when the number of dimensions is 2 or higher.
+
+
+Data structures
+====
+
+Clause registry:
+  + match: on projection creation
+  - find: clause heads are not unique
+
+Projection registry:
+  + match: on clause creation (most importantly, adding a new fact). Facts have
+    all the fields fixed, so we don't need specific indices on projections, we
+    can just use the pyramid itself.
+  + find: projections are interned in the pyramid
+
+Projection contents:
+  ? support by-value record equality => need to use pyramids. We probably can
+    instead use WeakMap-based hashing with value semantics here because we
+    cannot have any wildcards, only pure data.
+
+A pyramid is just an all-columns index.
+
+To summarize, why and where do we need pyramids?
+
+  - projection interning. Wildcard is treated as a unique datum.
+  - add new fact to the clause registry => match projections. We need index on
+    all columns, which is a pyramid. This is a common operation.
+
+So:
+  - projection registry:
+    - always maintain a pyramid
+    - maintain specialized indices as needed
+    ? always maintain cardinalities OR only compute them for index columns
+  - clause registry:
+    - maintain specialized indices as needed
+    ? always maintain cardinalities (needed to determine index column order)
+      OR only compute them for index columns
+  - projection data
+    - keep records in a map keyed by artificial hash
+
+
+Pyramid structure (cardinality switch):
+
+1 1
+  2
+
+2 1
+
+3 1
+  2
+
+4 2
+
+5 1
+
+--
+
+1 1
+  2
+  3
+  5
+
+2 1
+  3
+  4
+
+==========
+
+a, b, c
+a, b
+b, c
+
+Impossible to satisfy all the 3 index requests with 1 data structure.
+
+
+
+=========
+
+- Projection registry:
+  - pyramid always maintained => cardinalities are also always maintained
+- Clause registry:
+  - ???
+
+
+A1 - B1, B2, B3
+A2 - B2, B3
+A3 - B1, B3
+A4 - B1, B3
+A5 - B2, B3
+A6 - B1, B2
+A7 - B1, B2, B3
+
+
+```js
+({
+  [f0]: 'a',
+  map: new Map([
+    [
+      'a-value-1',
+      {
+        [f1]: 'b',
+        [f2]: 'c',
+        b: 'b-value',
+        c: 'c-value',
+      }
+    ],
+    [
+      'a-value-2',
+      {
+        [f1]: 'c',
+        map: new Map([
+          [
+            'c-value-1',
+            {
+              [f2]
+            }
+          ]
+        ])
+      }
+    ]
+  ])
+})
+```
+
+
+a | b | c
+---------

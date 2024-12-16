@@ -1,4 +1,5 @@
 import * as rv from 'rvlog'
+import * as riil from 'riil'
 
 let ageInput = document.getElementById('age')
 

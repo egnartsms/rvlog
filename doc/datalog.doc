@@ -1,0 +1,155 @@
+There are queries, inference rules, projections, predicates.
+
+All usages of data are queries. Queries are virtual: the party that access the data is
+only interested in the data itself, it doesn't care about the way this data is stored, or
+how it is generated. Whether the data is specified as facts or through inference rules.
+
+A query is a predicate and a set of bindings for each argument: whether unbound or bound
+(fixed). All the combinations are possible. A different binding for the same argument
+makes a different query.
+
+Query == projection. Let's use the term "query" only in the context where a human user
+queries anything, or similar. What we join in inference rule bodies is projections.
+
+It's also notable that a projection may be populated with several sources. Where it's
+used (read) and populated (written) is completely decoupled from one another.
+
+
+irel.add($.person("Joe").child("Jim"))
+irel.add($.person("Jack").child("Christine"))
+irel.infer($.person("Sue").child(v.Child), [ ... ])
+
+
+So a part of a projection's data may come as facts, while other parts may be lazily
+generated using different inference rules.
+
+
+Projections
+===
+
+We register projections with data structures similar to Pyramid. If in 2 places they refer
+to the same projection, they get the same object.
+
+Projections have storage. This is where all the data is kept, no matter whether added
+directly as facts or inferred.
+
+A projection thus has got:
+    - predicate
+    - set of bound arguments, with their fixed values
+    - storage
+    - orderings (tries)
+    - set of places where it's being used
+
+Predicates are also registered in a pyramid-like data structure, and have an identity.
+Predicates are identified by an ordered keyword chain, like this:
+
+    #person:name:
+    #person:age:
+    #product:atSale:isSoldOut:
+
+Tries are needed to join projections with the Leap-Frog algorithm in inference rules.
+Storage is probably just a set of objects with keys and values.
+
+Also, attributes are a special case of projections: 2-keyworded ones. We will support
+special syntax for them as they're a pretty important special case of predicates.
+
+
+Datum
+===
+
+A datum is what's called a compound term in Prolog. An ordered keyword-value sequence,
+where all the values are actual values, not variables. A datum is a special case of
+projection: when all the variables are bound. Such a projection essentially represents
+whether its datum exists or not; it may exist multiple times.
+
+Datums is what all the knowledge is represented with.
+
+Facts are datums that are entered directly in the system, i.e. supported by rules that
+have no inference body. Datums are not necessarily facts. Datums may be brought to life
+through inference (i.e. be inferred).
+
+For any particular datum, we may ask: is it true? It may be either false (does not exist
+and cannot be inferred), or can exist just once or multiple times. We say that is either
+unsupported or supported either once or multiple times.
+
+
+Database
+===
+
+A database is a datastructure where all the facts and inference rules are registered. Not
+sure what it should be. May be a pyramid, too, but may be we should just keep it by
+distinct predicates in a flat structure.
+
+In any case, a database maps projections to inference rules. For facts, projections are
+fully bound (i.e. a datum) and an inference rule may be omitted, and typically is. If the
+projection has any variables in it, then the body is required.
+
+
+```js
+irel.deduce($.edgeFrom('A').to('B'))
+irel.deduce($.edgeFrom('B').to('C'))
+irel.deduce($.edgeFrom('C').to('D'))
+
+irel.deduce($.vertex(v.Y).isReachableFrom(v.X), [
+  $.edgeFrom(v.X).to(v.Y)
+])
+
+irel.deduce($.vertex(v.Y).isReachableFrom(v.X), [
+  $.edgeFrom(v.X).to(v.Z),
+  $.vertex(v.Y).isReachableFrom(v.Z),
+])
+
+
+// alternative syntax:
+irel.infer({
+  what: $.vertex(v.Y).isReachableFrom(v.X),
+  when: [
+    $.vertex(v.Z).isReachableFrom(v.X),
+    $.edgeFrom(v.Z).to(v.Y),
+  ]
+)
+```
+
+So, we really can separate predicates one from another. All the below is supposed to
+happen within a single predicate.
+
+Each predicate can have several clauses, where each fact is a separate clause. Typically,
+the number of inference clauses (rules) won't be very high. When a new projection for
+this predicates comes into existence (i.e. queried by someone), we should run through all
+the clauses of the predicate and see which ones populate (satisfy) this projection.
+
+Let P be the projection in question, and H is a head projection of a clause. Then:
+
+    - if P >= H (P is a superprojection of H), then the clause is used to populate P;
+    - if P < H (P is a subprojection of H), then H needs to be specialized to match P;
+    - if P <> H (P and H are unorderable), then the clause is not used to populate P.
+
+For facts, if P and H are orderable, then P is always a superprojection of H.
+
+We can have indices for facts of the predicate. These could be used to quickly populate
+some newly queried projections. But we cannot know what indices will be required
+beforehand. Indices in IReL is not the same as they are traditionally understood in
+RDBMSes. At this point, I don't think I should implement them right now. It's more about
+caching and incremental evaluation rather than indices. Indices are for a different
+thing: it's when we keep creating new projections with different fixed values.
+
+
+Projection orderings
+===
+
+An ordering belongs to a projection, not predicate. Each projection may have any number of
+orderings. They are used for the Leap-Frog Trie Join (LFTJ) algorithm when joining
+projections.
+
+Orderings are like indices. A projection may be ordered by 1 or more attributes, in a
+certain order; the order is important. The
+projection #user:lastName:department:experience: may be ordered by (lastName, department)
+or by (department, lastName) -- these are two different orderings.
+
+
+A,B,C,D  [B,C,D] -- [B, C, D]
+E,F,G,C  [E,C] --   [C, E]
+B,C,H,E  [B,C,E] -- [B, C, E]
+D,E,I,J  [D,E]  --  [D, E]
+
+[B, C, D, E]
